@@ -1,23 +1,15 @@
 """
 """
-import sys
-from pathlib import Path
+import parser
 
-KNOWN_IMAGE_TYPES = {
-    "jpeg",
-    "jpg",
-    "bmp",
-    "png",
-    "tiff",
-}
+argument_parser = parser.Parser()
+argument_parser.parse_arguments()
 
-KNOWN_VIDEO_TYPES = {
-    "mp4",
-    "avi",
-    "mov",
-    "wmv",
-}
+print(argument_parser.arguments)
+print(argument_parser.unknown)
 
+
+"""
 input_dir = Path(sys.argv[1])
 
 def get_all_filetypes(directory):
@@ -49,3 +41,4 @@ if not input_dir.is_dir():
 
 filetypes = get_all_filetypes(input_dir)
 print(filetypes)
+"""

@@ -16,4 +16,4 @@ build_project() {
     rm $EXE_NAME.zip
 }
 
-build_project
+build_project && ./$EXE_NAME "$@"
