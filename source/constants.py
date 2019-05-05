@@ -2,6 +2,7 @@
 """
 import utilities
 
+
 TRANSFER_METHOD = utilities.copy_method
 HANDLE_UNKNOWN_FILETYPES_METHOD = utilities.ignore_unknown_filetypes_method
 KNOWN_IMAGE_TYPES = {
