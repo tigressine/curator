@@ -2,21 +2,31 @@
 """
 import utilities
 
-
-TRANSFER_METHOD = utilities.copy_method
-HANDLE_UNKNOWN_FILETYPES_METHOD = utilities.ignore_unknown_filetypes_method
 KNOWN_IMAGE_TYPES = {
-    'bmp',
-    'png',
-    'jpg',
-    'jpeg',
-    'tiff',
+    "bmp",
+    "png",
+    "jpg",
+    "jpeg",
+    "tiff",
 }
 KNOWN_VIDEO_TYPES = {
-    'mp4',
-    'avi',
-    'mov',
-    'wmv',
+    "mp4",
+    "avi",
+    "mov",
+    "wmv",
 }
-DIRECTORY_NAME_FORMAT = '{year}-{month} {name}'
-FILE_NAME_FORMAT = '{initials}_{number}.{filetype}'
+
+DEFAULT_TITLE = "album"
+DEFAULT_TITLE_FORMAT = "{year}-{month}_{title}"
+DEFAULT_ITEM_FORMAT = "{initials}_{sequence}.{extension}"
+DEFAULT_TRANSFER_METHOD = "copy"
+TRANSFER_METHOD_CHOICES = {
+    "copy",
+    "move",
+}
+DEFAULT_UNKNOWN_EXTENSION_HANDLER = "ignore"
+UNKNOWN_EXTENSION_HANDLER_CHOICES = {
+    "copy",
+    "move",
+    "ignore",
+}
