@@ -127,14 +127,12 @@ UNKNOWN_FILETYPE_STRATEGIES = {
 
 # Main entry point of the script.
 parser = Parser()
-print(parser.arguments)
 
 image_index = 0
 video_index = 0
 for source_directory in parser.arguments["sources"]:
     for item in source_directory.iterdir():
         lowercase_suffix = item.suffix.lower()
-        print(lowercase_suffix)
         if lowercase_suffix in KNOWN_IMAGE_TYPES:
             parser.arguments["transfer_method"](
                 item,
