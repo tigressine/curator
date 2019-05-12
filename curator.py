@@ -6,6 +6,25 @@ import argparse
 import datetime
 
 
+# Constants and defaults for this script.
+KNOWN_IMAGE_TYPES = {
+    ".bmp",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".tiff",
+}
+KNOWN_VIDEO_TYPES = {
+    ".mp4",
+    ".avi",
+    ".mov",
+    ".wmv",
+}
+DEFAULT_TITLE = "New Album"
+TITLE_FORMAT = "{year}-{month} {title}"
+ITEM_FORMAT = "{initials}_{sequence}{extension}"
+
+
 class Parser(argparse.ArgumentParser):
     """Class that handles command line arguments."""
 
@@ -25,15 +44,8 @@ class Parser(argparse.ArgumentParser):
         self.add_argument("sources", nargs="+")
         self.add_argument("--initials", default=None)
         self.add_argument("--title", default=DEFAULT_TITLE)
-        self.add_argument("--item-format", default=DEFAULT_ITEM_FORMAT)
-        self.add_argument("--title-format", default=DEFAULT_TITLE_FORMAT)
-        self.add_argument("--transfer-method", default=DEFAULT_TRANSFER_METHOD)
         self.add_argument("--year", default=datetime.datetime.now().year)
         self.add_argument("--month", default=datetime.datetime.now().month)
-        self.add_argument(
-            "--unknown-filetype-strategy",
-            default=DEFAULT_UNKNOWN_FILETYPE_STRATEGY,
-        )
 
     def __parse_arguments(self):
         """Parse known arguments and save them."""
@@ -43,8 +55,7 @@ class Parser(argparse.ArgumentParser):
     def __validate_arguments(self):
         """"""
         # handle making video
-        # make dest pathlib
-        # make src pathlib
+
         self.arguments["destination"] = pathlib.Path(self.arguments["destination"])
         self.arguments["sources"] = set(
             map(
@@ -53,21 +64,11 @@ class Parser(argparse.ArgumentParser):
             ),
         )
 
-        # make year and month int
         self.arguments["month"] = int(self.arguments["month"])
         self.arguments["year"] = int(self.arguments["year"])
 
-        # ensure that strategy, transfer are valid
-
-        # set strategy
-        method = self.arguments["transfer_method"]
-        if method in TRANSFER_METHODS.keys():
-            self.arguments["transfer_method"] = TRANSFER_METHODS[method]
-        else:
-            pass #
-
         # ensure that dest and src exist and are accessible
-        # sanitize title and formats
+        # sanitize title
 
     def __determine_initials(self):
         """"""
@@ -83,62 +84,23 @@ class Parser(argparse.ArgumentParser):
         pass
 
 
-def copy_file(item, destination, target_format, target_format_arguments):
-    """"""
-    target = pathlib.Path(destination) / target_format.format(**target_format_arguments)
-    shutil.copy2(str(item), str(target))
-
-
-def move_file(item, destination, target_format, target_format_arguments):
-    """"""
-    target = pathlib.Path(destination) / target_format.format(**target_format_arguments)
-    pathlib.Path(item).rename(target)
-
-
-# Constants and defaults for this script.
-KNOWN_IMAGE_TYPES = {
-    ".bmp",
-    ".png",
-    ".jpg",
-    ".jpeg",
-    ".tiff",
-}
-KNOWN_VIDEO_TYPES = {
-    ".mp4",
-    ".avi",
-    ".mov",
-    ".wmv",
-}
-DEFAULT_TITLE = "album"
-DEFAULT_TITLE_FORMAT = "{year}-{month}_{title}"
-DEFAULT_ITEM_FORMAT = "{initials}_{sequence}{extension}"
-DEFAULT_TRANSFER_METHOD = "copy"
-TRANSFER_METHODS = {
-    "copy" : copy_file,
-    "move" : move_file,
-}
-DEFAULT_UNKNOWN_FILETYPE_STRATEGY = "ignore"
-UNKNOWN_FILETYPE_STRATEGIES = {
-    "copy",
-    "move",
-    "ignore",
-}
-
-
 # Main entry point of the script.
 parser = Parser()
 
 image_index = 0
 video_index = 0
+destination = parser.arguments["destination"] / TITLE_FORMAT.format(
+    year=parser.arguments["year"],
+    month=parser.arguments["month"],
+    title=parser.arguments["title"],
+)
 for source_directory in parser.arguments["sources"]:
     for item in source_directory.iterdir():
         lowercase_suffix = item.suffix.lower()
         if lowercase_suffix in KNOWN_IMAGE_TYPES:
-            parser.arguments["transfer_method"](
+            shutil.copy2(
                 item,
-                parser.arguments["destination"],
-                DEFAULT_ITEM_FORMAT,
-                dict(
+                destination / ITEM_FORMAT.format(
                     initials=parser.arguments["initials"],
                     sequence=image_index,
                     extension=lowercase_suffix,
@@ -146,11 +108,9 @@ for source_directory in parser.arguments["sources"]:
             )
             image_index += 1
         elif lowercase_suffix in KNOWN_VIDEO_TYPES:
-            parser.arguments["transfer_method"](
+            shutil.copy2(
                 item,
-                parser.arguments["destination"] / "videos",
-                DEFAULT_ITEM_FORMAT,
-                dict(
+                destination / "videos" / ITEM_FORMAT.format(
                     initials=parser.arguments["initials"],
                     sequence=video_index,
                     extension=lowercase_suffix,
@@ -159,5 +119,5 @@ for source_directory in parser.arguments["sources"]:
             video_index += 1
         else:
             print("here")
+            print("unknown file type")
             # handle weird file types
-            pass
