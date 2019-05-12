@@ -25,7 +25,8 @@ KNOWN_VIDEO_TYPES = {
 DEFAULT_TITLE = "Album"
 DEFAULT_CLIPS_DIRECTORY = "Clips"
 TITLE_FORMAT = "{year}-{month} {title}"
-ITEM_FORMAT = "{initials}_{sequence}{extension}"
+ITEM_FORMAT = "{initials}_{index}{extension}"
+IGNORING_ITEM_FORMAT = "Ignoring {0} due to unknown filetype."
 
 
 class Parser(argparse.ArgumentParser):
@@ -130,7 +131,7 @@ for source in parser.arguments["sources"]:
                 item,
                 destination / ITEM_FORMAT.format(
                     initials=parser.arguments["initials"],
-                    sequence=str(image_index).rjust(image_index_places, "0"),
+                    index=str(image_index).rjust(image_index_places, "0"),
                     extension=filetype,
                 ),
             )
@@ -140,12 +141,10 @@ for source in parser.arguments["sources"]:
                 item,
                 video_destination / ITEM_FORMAT.format(
                     initials=parser.arguments["initials"],
-                    sequence=str(video_index).rjust(video_index_places, "0"),
+                    index=str(video_index).rjust(video_index_places, "0"),
                     extension=filetype,
                 ),
             )
             video_index += 1
         else:
-            print("here")
-            print("unknown file type")
-            # handle weird file types
+            print(IGNORING_ITEM_FORMAT.format(item))
