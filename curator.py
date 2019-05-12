@@ -54,8 +54,6 @@ class Parser(argparse.ArgumentParser):
 
     def __validate_arguments(self):
         """"""
-        # handle making video
-
         self.arguments["destination"] = pathlib.Path(self.arguments["destination"])
         self.arguments["sources"] = set(
             map(
@@ -80,8 +78,8 @@ class Parser(argparse.ArgumentParser):
         )
 
     def error(self, message):
-        """If any parsing error occurs, help the user."""
-        pass
+        """If any parsing error occurs, tell the user."""
+        print("An error occurred:", message)
 
 
 # Main entry point of the script.
@@ -98,6 +96,8 @@ for source_directory in parser.arguments["sources"]:
     for item in source_directory.iterdir():
         lowercase_suffix = item.suffix.lower()
         if lowercase_suffix in KNOWN_IMAGE_TYPES:
+            if not destination.exists():
+                destination.mkdir(parents=True)
             shutil.copy2(
                 item,
                 destination / ITEM_FORMAT.format(
@@ -108,9 +108,12 @@ for source_directory in parser.arguments["sources"]:
             )
             image_index += 1
         elif lowercase_suffix in KNOWN_VIDEO_TYPES:
+            video_destination = destination / "videos"
+            if not video_destination.exists():
+                video_destination.mkdir(parents=True)
             shutil.copy2(
                 item,
-                destination / "videos" / ITEM_FORMAT.format(
+                video_destination / ITEM_FORMAT.format(
                     initials=parser.arguments["initials"],
                     sequence=video_index,
                     extension=lowercase_suffix,
