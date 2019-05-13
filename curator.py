@@ -2,6 +2,7 @@
 
 Written by Tiger Sachse.
 """
+import os
 import shutil
 import pathlib
 import argparse
@@ -137,34 +138,39 @@ if image_count > 0 and not destination.exists():
 if video_count > 0 and not video_destination.exists():
     video_destination.mkdir(parents=True)
 
-# Copy each image and video into the correct destination.
-image_index = 1
-video_index = 1
+# Collect all items into a list, then sort the list by modification time.
+items = []
 for source in parser.arguments["sources"]:
     for item in source.iterdir():
         if item.is_dir():
             continue
+        items.append((item, os.path.getmtime(str(item))))
+items = sorted(items, key=lambda pair: pair[1])
 
-        filetype = item.suffix.lower()
-        if filetype in KNOWN_IMAGE_TYPES:
-            shutil.copy2(
-                item,
-                destination / ITEM_FORMAT.format(
-                    initials=parser.arguments["initials"],
-                    index=str(image_index).rjust(image_index_places, "0"),
-                    extension=filetype,
-                ),
-            )
-            image_index += 1
-        elif filetype in KNOWN_VIDEO_TYPES:
-            shutil.copy2(
-                item,
-                video_destination / ITEM_FORMAT.format(
-                    initials=parser.arguments["initials"],
-                    index=str(video_index).rjust(video_index_places, "0"),
-                    extension=filetype,
-                ),
-            )
-            video_index += 1
-        else:
-            print(IGNORING_ITEM_FORMAT.format(item))
+# Copy each image and video into the correct destination.
+image_index = 1
+video_index = 1
+for item, timestamp in items:
+    filetype = item.suffix.lower()
+    if filetype in KNOWN_IMAGE_TYPES:
+        shutil.copy2(
+            item,
+            destination / ITEM_FORMAT.format(
+                initials=parser.arguments["initials"],
+                index=str(image_index).rjust(image_index_places, "0"),
+                extension=filetype,
+            ),
+        )
+        image_index += 1
+    elif filetype in KNOWN_VIDEO_TYPES:
+        shutil.copy2(
+            item,
+            video_destination / ITEM_FORMAT.format(
+                initials=parser.arguments["initials"],
+                index=str(video_index).rjust(video_index_places, "0"),
+                extension=filetype,
+            ),
+        )
+        video_index += 1
+    else:
+        print(IGNORING_ITEM_FORMAT.format(item))
