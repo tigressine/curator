@@ -23,7 +23,7 @@ KNOWN_VIDEO_TYPES = {
     ".wmv",
 }
 DEFAULT_TITLE = "Album"
-DEFAULT_CLIPS_DIRECTORY = "Clips"
+DEFAULT_VIDEO_DIRECTORY = "Clips"
 TITLE_FORMAT = "{year}-{month} {title}"
 ITEM_FORMAT = "{initials}_{index}{extension}"
 IGNORING_ITEM_FORMAT = "Ignoring {0} due to unknown filetype."
@@ -64,6 +64,15 @@ class Parser(argparse.ArgumentParser):
 
     def __sanitize_arguments(self):
         """Transform some arguments into more useful forms."""
+        def collect_subsources(source, subsources):
+            """Recursively collect subsources inside of a source."""
+            for item in source.iterdir():
+                if item.is_dir():
+                    subsources.add(item)
+                    collect_subsources(item, subsources)
+
+        self.arguments["month"] = str(self.arguments["month"]).rjust(2, "0")
+        self.arguments["year"] = str(self.arguments["year"]).rjust(4, "0")
         self.arguments["destination"] = pathlib.Path(self.arguments["destination"])
         self.arguments["sources"] = set(
             map(
@@ -71,8 +80,10 @@ class Parser(argparse.ArgumentParser):
                 self.arguments["sources"],
             ),
         )
-        self.arguments["month"] = str(self.arguments["month"]).rjust(2, "0")
-        self.arguments["year"] = str(self.arguments["year"]).rjust(4, "0")
+        subsources = set()
+        for source in self.arguments["sources"]:
+            collect_subsources(source, subsources)
+        self.arguments["sources"] |= subsources
 
     def __determine_initials(self):
         """Get initials from the title."""
@@ -112,7 +123,13 @@ destination = parser.arguments["destination"] / TITLE_FORMAT.format(
     month=parser.arguments["month"],
     title=parser.arguments["title"],
 )
-video_destination = destination / DEFAULT_CLIPS_DIRECTORY
+
+# Place videos in the main destination if no images exist, else place them in a
+# separate directory.
+if video_count > 0 and image_count == 0:
+    video_destination = destination
+else:
+    video_destination = destination / DEFAULT_VIDEO_DIRECTORY
 
 # If either destination doesn't exist, create it.
 if image_count > 0 and not destination.exists():
@@ -125,6 +142,9 @@ image_index = 1
 video_index = 1
 for source in parser.arguments["sources"]:
     for item in source.iterdir():
+        if item.is_dir():
+            continue
+
         filetype = item.suffix.lower()
         if filetype in KNOWN_IMAGE_TYPES:
             shutil.copy2(
