@@ -11,6 +11,7 @@ import datetime
 
 # Constants and defaults for this script.
 KNOWN_IMAGE_TYPES = {
+    ".gif",
     ".bmp",
     ".png",
     ".jpg",
@@ -18,6 +19,7 @@ KNOWN_IMAGE_TYPES = {
     ".tiff",
 }
 KNOWN_VIDEO_TYPES = {
+    ".m4v",
     ".mp4",
     ".avi",
     ".mov",
