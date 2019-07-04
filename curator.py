@@ -2,6 +2,7 @@
 
 Written by Tiger Sachse.
 """
+import os
 import shutil
 import pathlib
 import argparse
@@ -10,6 +11,7 @@ import datetime
 
 # Constants and defaults for this script.
 KNOWN_IMAGE_TYPES = {
+    ".gif",
     ".bmp",
     ".png",
     ".jpg",
@@ -17,13 +19,14 @@ KNOWN_IMAGE_TYPES = {
     ".tiff",
 }
 KNOWN_VIDEO_TYPES = {
+    ".m4v",
     ".mp4",
     ".avi",
     ".mov",
     ".wmv",
 }
 DEFAULT_TITLE = "Album"
-DEFAULT_CLIPS_DIRECTORY = "Clips"
+DEFAULT_VIDEO_DIRECTORY = "Clips"
 TITLE_FORMAT = "{year}-{month} {title}"
 ITEM_FORMAT = "{initials}_{index}{extension}"
 IGNORING_ITEM_FORMAT = "Ignoring {0} due to unknown filetype."
@@ -64,6 +67,15 @@ class Parser(argparse.ArgumentParser):
 
     def __sanitize_arguments(self):
         """Transform some arguments into more useful forms."""
+        def collect_subsources(source, subsources):
+            """Recursively collect subsources inside of a source."""
+            for item in source.iterdir():
+                if item.is_dir():
+                    subsources.add(item)
+                    collect_subsources(item, subsources)
+
+        self.arguments["month"] = str(self.arguments["month"]).rjust(2, "0")
+        self.arguments["year"] = str(self.arguments["year"]).rjust(4, "0")
         self.arguments["destination"] = pathlib.Path(self.arguments["destination"])
         self.arguments["sources"] = set(
             map(
@@ -71,8 +83,13 @@ class Parser(argparse.ArgumentParser):
                 self.arguments["sources"],
             ),
         )
-        self.arguments["month"] = str(self.arguments["month"]).rjust(2, "0")
-        self.arguments["year"] = str(self.arguments["year"]).rjust(4, "0")
+        subsources = set()
+        for source in self.arguments["sources"]:
+            collect_subsources(source, subsources)
+        self.arguments["sources"] |= subsources
+        self.arguments["sources"] = list(
+            sorted(self.arguments["sources"], key=lambda source_path: source_path),
+        )
 
     def __determine_initials(self):
         """Get initials from the title."""
@@ -112,7 +129,13 @@ destination = parser.arguments["destination"] / TITLE_FORMAT.format(
     month=parser.arguments["month"],
     title=parser.arguments["title"],
 )
-video_destination = destination / DEFAULT_CLIPS_DIRECTORY
+
+# Place videos in the main destination if no images exist, else place them in a
+# separate directory.
+if video_count > 0 and image_count == 0:
+    video_destination = destination
+else:
+    video_destination = destination / DEFAULT_VIDEO_DIRECTORY
 
 # If either destination doesn't exist, create it.
 if image_count > 0 and not destination.exists():
@@ -120,31 +143,42 @@ if image_count > 0 and not destination.exists():
 if video_count > 0 and not video_destination.exists():
     video_destination.mkdir(parents=True)
 
+# Collect all items into a list. This list is sorted by modification time on a
+# per-subsource basis.
+items = []
+for source in parser.arguments["sources"]:
+    subsource_items = []
+    for item in source.iterdir():
+        if item.is_dir():
+            continue
+        subsource_items.append((item, os.path.getmtime(str(item))))
+    subsource_items = sorted(subsource_items, key=lambda pair: pair[1])
+    items.extend(subsource_items)
+
 # Copy each image and video into the correct destination.
 image_index = 1
 video_index = 1
-for source in parser.arguments["sources"]:
-    for item in source.iterdir():
-        filetype = item.suffix.lower()
-        if filetype in KNOWN_IMAGE_TYPES:
-            shutil.copy2(
-                item,
-                destination / ITEM_FORMAT.format(
-                    initials=parser.arguments["initials"],
-                    index=str(image_index).rjust(image_index_places, "0"),
-                    extension=filetype,
-                ),
-            )
-            image_index += 1
-        elif filetype in KNOWN_VIDEO_TYPES:
-            shutil.copy2(
-                item,
-                video_destination / ITEM_FORMAT.format(
-                    initials=parser.arguments["initials"],
-                    index=str(video_index).rjust(video_index_places, "0"),
-                    extension=filetype,
-                ),
-            )
-            video_index += 1
-        else:
-            print(IGNORING_ITEM_FORMAT.format(item))
+for item, timestamp in items:
+    filetype = item.suffix.lower()
+    if filetype in KNOWN_IMAGE_TYPES:
+        shutil.copy2(
+            item,
+            destination / ITEM_FORMAT.format(
+                initials=parser.arguments["initials"],
+                index=str(image_index).rjust(image_index_places, "0"),
+                extension=filetype,
+            ),
+        )
+        image_index += 1
+    elif filetype in KNOWN_VIDEO_TYPES:
+        shutil.copy2(
+            item,
+            video_destination / ITEM_FORMAT.format(
+                initials=parser.arguments["initials"],
+                index=str(video_index).rjust(video_index_places, "0"),
+                extension=filetype,
+            ),
+        )
+        video_index += 1
+    else:
+        print(IGNORING_ITEM_FORMAT.format(item))
