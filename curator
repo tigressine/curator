@@ -1,0 +1,76 @@
+#!/bin/sh
+
+# Print an error to the terminal.
+print_error() {
+  printf "\033[31m%s\n\033[0m" "$@"
+}
+
+# Move and rename all files from a source directory to a destination.
+order() {
+
+  # Ensure source and destination directories are present.
+  if [ $# -lt 1 ]; then
+    print_error "missing source and destination directories"
+    return 1
+  fi
+  if [ $# -lt 2 ]; then
+    print_error "missing destination directory"
+    return 1
+  fi
+
+  # Calculate absolute paths for the source and destination directories. If
+  # the paths don't exist, return.
+  source_directory="$(realpath --quiet --no-symlinks "$1")"
+  if [ $? -ne 0 ]; then
+    print_error "could not resolve source directory path"
+    return 1
+  fi
+  destination_directory="$(realpath --quiet --no-symlinks "$2")"
+  if [ $? -ne 0 ]; then
+    print_error "could not resolve destination directory path"
+    return 1
+  fi
+
+  # Calculate the required index padding based on the total file count.
+  file_count=$(find "$source_directory" -type f | wc --lines)
+  padding=0
+  while [ $file_count -gt 0 ]; do
+    file_count=$((file_count / 10))
+    padding=$((padding + 1))
+  done
+
+  # Extract album initials from the current directory name.
+  album="$(basename "$destination_directory")"
+  initials="$(printf "$album" | tr --complement --delete '[:upper:]')"
+
+  # Rename each file in alphabetical order. Save each file with a .temp
+  # extension to prevent overwrites.
+  iteration=1
+  for path in $(find "$source_directory" -type f | sort); do
+    extension="$(printf "${path##*.}" | tr '[:upper:]' '[:lower:]')"
+    id="$(printf "%0${padding}d" $iteration)"
+    printf "$destination_directory/$initials-$id.$extension <- $path\n"
+    cp "$path" "$destination_directory/$initials-$id.$extension.temp"
+    iteration=$((iteration + 1))
+  done
+
+  # Remove .temp extensions after files have been copied in order.
+  for path in $(find "$destination_directory" -type f); do
+    if [ "${path##*.}" == "temp" ]; then
+      mv "$path" "$(dirname "$path")/$(basename --suffix .temp "$path")"
+    fi
+  done
+}
+
+# The different available modes for this program.
+case "$1" in
+  "order")
+    shift
+    order "$@"
+    exit $?
+    ;;
+  *)
+    print_error "undefined mode"
+    exit 1
+    ;;
+esac
