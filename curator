@@ -46,11 +46,11 @@ order() {
   # Rename each file in alphabetical order. Save each file with a .temp
   # extension to prevent overwrites.
   iteration=1
-  for path in $(find "$source_directory" -type f | sort); do
+  for path in $(find "$source_directory" -type f | sort --key=1,1 --field-separator=.); do
     extension="$(printf "${path##*.}" | tr '[:upper:]' '[:lower:]')"
     id="$(printf "%0${padding}d" $iteration)"
     printf "$destination_directory/$initials-$id.$extension <- $path\n"
-    cp "$path" "$destination_directory/$initials-$id.$extension.temp"
+    mv "$path" "$destination_directory/$initials-$id.$extension.temp"
     iteration=$((iteration + 1))
   done
 
@@ -70,7 +70,7 @@ case "$1" in
     exit $?
     ;;
   *)
-    print_error "undefined mode"
+    print_error "undefined mode (available: order)"
     exit 1
     ;;
 esac
